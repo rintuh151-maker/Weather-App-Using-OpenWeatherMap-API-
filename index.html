@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Weather App</title>
+<style>
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  }
+
+  .app {
+    width: 100%;
+    max-width: 380px;
+    padding: 20px;
+  }
+
+  h1 {
+    text-align: center;
+    color: #fff;
+    font-size: 1.6rem;
+    margin-bottom: 20px;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  .search-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+
+  .search-box input {
+    flex: 1;
+    padding: 12px 16px;
+    border: none;
+    border-radius: 30px;
+    outline: none;
+    font-size: 1rem;
+  }
+
+  .search-box button {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 30px;
+    background: #1e3c72;
+    color: #fff;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .search-box button:hover {
+    background: #16305e;
+  }
+
+  .card {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 30px 20px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    display: none;
+  }
+
+  .card.show { display: block; }
+
+  .city {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #1e3c72;
+    margin-bottom: 4px;
+  }
+
+  .condition {
+    color: #555;
+    text-transform: capitalize;
+    margin-bottom: 10px;
+  }
+
+  .temp {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #333;
+    margin: 10px 0;
+  }
+
+  .details {
+    display: flex;
+    justify-content: space-around;
+    margin-top: 20px;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+  }
+
+  .details div {
+    color: #555;
+  }
+
+  .details span {
+    display: block;
+    font-weight: bold;
+    color: #1e3c72;
+    font-size: 1.1rem;
+  }
+
+  .message {
+    text-align: center;
+    color: #fff;
+    font-weight: bold;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <h1>🌦️ Weather App</h1>
+
+  <div class="search-box">
+    <input type="text" id="cityInput" placeholder="Enter city name..." />
+    <button id="searchBtn">Search</button>
+  </div>
+
+  <p class="message" id="message"></p>
+
+  <div class="card" id="weatherCard">
+    <div class="city" id="cityName">--</div>
+    <div class="condition" id="condition">--</div>
+    <div class="temp" id="temperature">--°C</div>
+    <div class="details">
+      <div>Humidity<span id="humidity">--%</span></div>
+      <div>Feels Like<span id="feelsLike">--°C</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_KEY = "df0a2cf1cbab35408124642f9b5f102e";
+
+  const cityInput = document.getElementById("cityInput");
+  const searchBtn = document.getElementById("searchBtn");
+  const messageEl = document.getElementById("message");
+  const weatherCard = document.getElementById("weatherCard");
+
+  const cityNameEl = document.getElementById("cityName");
+  const conditionEl = document.getElementById("condition");
+  const temperatureEl = document.getElementById("temperature");
+  const humidityEl = document.getElementById("humidity");
+  const feelsLikeEl = document.getElementById("feelsLike");
+
+  async function fetchWeather(query) {
+    const url = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(query)}&units=metric&appid=${API_KEY}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("City not found");
+    }
+    return response.json();
+  }
+
+  async function getWeather() {
+    const city = cityInput.value.trim();
+
+    if (city === "") {
+      showMessage("Please enter a city name.");
+      return;
+    }
+
+    showMessage("Loading...");
+    weatherCard.classList.remove("show");
+
+    try {
+      // Try the plain city name first
+      let data;
+      try {
+        data = await fetchWeather(city);
+      } catch (firstError) {
+        // Fallback: retry with ",IN" in case it's a smaller Indian town
+        // not indexed under the plain name
+        data = await fetchWeather(city + ",IN");
+      }
+
+      displayWeather(data);
+      showMessage("");
+    } catch (error) {
+      showMessage("⚠️ City not found");
+      weatherCard.classList.remove("show");
+    }
+  }
+
+  function displayWeather(data) {
+    cityNameEl.textContent = `${data.name}, ${data.sys.country}`;
+    conditionEl.textContent = data.weather[0].description;
+    temperatureEl.textContent = `${Math.round(data.main.temp)}°C`;
+    humidityEl.textContent = `${data.main.humidity}%`;
+    feelsLikeEl.textContent = `${Math.round(data.main.feels_like)}°C`;
+
+    weatherCard.classList.add("show");
+  }
+
+  function showMessage(msg) {
+    messageEl.textContent = msg;
+  }
+
+  searchBtn.addEventListener("click", getWeather);
+
+  cityInput.addEventListener("keypress", function (e) {
+    if (e.key === "Enter") {
+      getWeather();
+    }
+  });
+</script>
+
+</body>
+</html>
